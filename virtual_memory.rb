@@ -2,7 +2,9 @@ class VirtualMemory
 
   def initialize
     @pm = Array.new(1024 * 512)
-    @available_frame = Array.new(32, 0)
+    @available_frame = bitmap.new(1024)
+    # Frame 0 is always used by ST
+    @available_frame.set_1(0)
   end
 
   def read(va)
