@@ -1,11 +1,11 @@
 class VirtualMemory
 
-  def initialize(filename)
+  def initialize(init_file)
     @pm = Array.new(1024 * 512, 0)
     @available_frame = BitMap.new(1024)
     # Frame 0 is always used by ST
     @available_frame.set_1(0)
-    read_init_file filename
+    read_init_file init_file
   end
 
   def read_init_file(filename)
@@ -32,19 +32,46 @@ class VirtualMemory
     end
   end
 
+  def operate_on(filename)
+    line = []
+    results = []
+    File.open(filename, 'r') do |f|
+      line = f.readline.chomp.split(' ')
+    end
+
+    (0..(line.length - 2)).step(2).each do |i|
+      op_code = line[i]
+      va = VirtualAddress.new(line[i+1])
+      # 0 indicates read
+      begin
+        if op_code == 0
+          results.push read(va)
+        else
+          results.push write(va)
+        end
+      rescue PageFaultError => e
+        results.push e.message
+      rescue PageNotExistsError => e
+        results.push e.message
+      end
+    end
+
+    results
+  end
+
   def read(va)
     if @pm[va.s] == -1
-      raise 'PageFault'
+      raise PageFaultError, 'pf'
     elsif @pm[va.s] == 0
-      raise 'PageNotExist'
+      raise PageNotExistsError, 'error'
     else
       pt_entry = @pm[va.s] + va.p
     end
 
     if @pm[pt_entry] == -1
-      raise 'PageFault'
+      raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
-      raise 'PageNotExist'
+      raise PageNotExistsError, 'error'
     else
       entry = @pm[pt_entry] + va.w
     end
@@ -54,7 +81,7 @@ class VirtualMemory
 
   def write(va)
     if @pm[va.s] == -1
-      raise 'PageFault'
+      raise PageFaultError, 'pf'
     elsif @pm[va.s] == 0
       pt_entry = allocate_pt_for(va.s)
     else
@@ -62,7 +89,7 @@ class VirtualMemory
     end
 
     if @pm[pt_entry] == -1
-      raise 'PageFault'
+      raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
       entry = allocate_page(pt_entry)
     else

@@ -1,0 +1,2 @@
+class PageNotExistsError < StandardError
+end
