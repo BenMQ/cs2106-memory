@@ -1,10 +1,35 @@
 class VirtualMemory
 
-  def initialize
+  def initialize(filename)
     @pm = Array.new(1024 * 512, 0)
     @available_frame = BitMap.new(1024)
     # Frame 0 is always used by ST
     @available_frame.set_1(0)
+    read_init_file filename
+  end
+
+  def read_init_file(filename)
+    line1 = []
+    line2 = []
+    File.open(filename, 'r') do |f|
+      line1 = f.readline.chomp.split(' ')
+      line2 = f.readline.chomp.split(' ')
+    end
+
+    # first line is of the format s, f
+    (0..(line1.length - 2)).step(2).each do |i|
+      s = line1[i]
+      f = line1[i + 1]
+      @pm[s] = f
+    end
+
+    # second line is of the format p, s, f
+    (0..(line2.length - 2)).step(3).each do |i|
+      p = line1[i]
+      s = line1[i + 1]
+      f = line1[i + 1]
+      @pm[@pm[s] + p] = f
+    end
   end
 
   def read(va)
