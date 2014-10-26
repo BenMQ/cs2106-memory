@@ -1,13 +1,19 @@
 require_relative 'bit_map'
 require_relative 'virtual_address'
+require_relative 'translation_look_aside_buffer'
 require_relative 'page_fault_error'
 require_relative 'page_not_exists_error'
 
 class VirtualMemory
 
-  def initialize(init_file)
+  def initialize(init_file, use_tlb)
     @pm = Array.new(1024 * 512, 0)
     @available_frame = BitMap.new(1024)
+    @use_tlb = use_tlb
+    if use_tlb
+      @tlb = TranslationLookAsideBuffer.new
+    end
+
     # Frame 0 is always used by ST
     @available_frame.set_1(0)
     read_init_file init_file
@@ -47,17 +53,33 @@ class VirtualMemory
     (0..(line.length - 2)).step(2).each do |i|
       op_code = line[i].to_i
       va = VirtualAddress.new(line[i + 1].to_i)
+      result = ''
       # 0 indicates read
       begin
-        if op_code == 0
-          results.push read(va)
-        else
-          results.push write(va)
+        if @use_tlb
+          tlb_result = @tlb.search(va.s << 10 + va.p)
+          if tlb_result > 0
+            results.push('h').push(tlb_result + va.w)
+            next
+          end
         end
+
+        if op_code == 0
+          result = read va
+        else
+          result = write va
+        end
+        if @use_tlb
+          results.push('m')
+        end
+        results.push(result)
+
       rescue PageFaultError => e
         results.push e.message
       rescue PageNotExistsError => e
         results.push e.message
+      #rescue Exception => e
+      #  results.push 'err'
       end
     end
 
@@ -89,6 +111,9 @@ class VirtualMemory
       entry = @pm[pt_entry] + va.w
     end
 
+    if @use_tlb
+      @tlb.update(va.s << 10 + va.p, entry)
+    end
     entry
   end
 
@@ -109,6 +134,9 @@ class VirtualMemory
       entry = @pm[pt_entry] + va.w
     end
 
+    if @use_tlb
+      @tlb.update(va.s << 10 + va.p, entry)
+    end
     entry
   end
 
