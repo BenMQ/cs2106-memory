@@ -6,6 +6,8 @@ require_relative 'page_not_exists_error'
 
 class VirtualMemory
 
+  # init_file is the file to initialise the memory
+  # use_tlb flags whether to use Translation Look-aside Buffer
   def initialize(init_file, use_tlb)
     @pm = Array.new(1024 * 512, 0)
     @available_frame = BitMap.new(1024)
@@ -19,6 +21,7 @@ class VirtualMemory
     read_init_file init_file
   end
 
+  # Populate the memory with content from a file
   def read_init_file(filename)
     line1 = []
     line2 = []
@@ -43,6 +46,7 @@ class VirtualMemory
     end
   end
 
+  # Read from a file that includes list of operations
   def operate_on(filename)
     line = []
     results = []
@@ -50,26 +54,29 @@ class VirtualMemory
       line = f.readline.chomp.split(' ')
     end
 
+    # Each pair of values is in the form of (opcode, address)
     (0..(line.length - 2)).step(2).each do |i|
       op_code = line[i].to_i
       va = VirtualAddress.new(line[i + 1].to_i)
       result = ''
-      # 0 indicates read
       begin
         if @use_tlb
           tlb_result = @tlb.search(va.s << 10 + va.p)
           if tlb_result > 0
+            # print h for cache hit, followed by address
             results.push('h').push(tlb_result + va.w)
             next
           end
         end
 
+        # 0 indicates read, 1 indicates write
         if op_code == 0
           result = read va
         else
           result = write va
         end
         if @use_tlb
+          # print m for cache miss
           results.push('m')
         end
         results.push(result)
@@ -78,14 +85,15 @@ class VirtualMemory
         results.push e.message
       rescue PageNotExistsError => e
         results.push e.message
-      #rescue Exception => e
-      #  results.push 'err'
+      rescue Exception => e
+        results.push 'err'
       end
     end
 
     @results = results
   end
 
+  # Prints the output into a file in one line
   def write_to(filename)
     target = open(filename, 'w')
     target.truncate(0)
@@ -94,6 +102,8 @@ class VirtualMemory
     target.close
   end
 
+  # Returns the physical address based on the virtual address,
+  # Or throw either page fault or not exist error
   def read(va)
     if @pm[va.s] == -1
       raise PageFaultError, 'pf'
@@ -112,11 +122,15 @@ class VirtualMemory
     end
 
     if @use_tlb
+      # Update the TLB with the result
       @tlb.update(va.s << 10 + va.p, entry)
     end
     entry
   end
 
+  # Returns the physical address based on the virtual address,
+  # If page does not exist, create one
+  # Throws page fault error
   def write(va)
     if @pm[va.s] == -1
       raise PageFaultError, 'pf'
@@ -135,6 +149,7 @@ class VirtualMemory
     end
 
     if @use_tlb
+      # Update the TLB with the result
       @tlb.update(va.s << 10 + va.p, entry)
     end
     entry
@@ -142,6 +157,7 @@ class VirtualMemory
 
   # Allocate a new PT for an ST entry
   # entry_address: the address of the ST entry to be updated
+  # returns the address for the allocated new page
   def allocate_pt_for(entry_address)
     # find and occupy two consecutive free frames
     free_frame = @available_frame.search_for_00
@@ -158,6 +174,7 @@ class VirtualMemory
 
   # Allocate a new page for an PT entry
   # entry_address: the address of the PT entry to be updated
+  # returns the address for the allocated new page
   def allocate_page(entry_address)
     free_frame = @available_frame.search_for_0
     @available_frame.set_1(free_frame)

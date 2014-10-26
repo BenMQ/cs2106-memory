@@ -1,7 +1,9 @@
 class TranslationLookAsideBuffer
   def initialize
     @buffer = Array.new(4)
-
+    # First field is LRU
+    # Second field is the sp value
+    # Third field is the physical address for the frame start
     @buffer[0] = [0, -1, -1]
     @buffer[1] = [1, -1, -1]
     @buffer[2] = [2, -1, -1]
