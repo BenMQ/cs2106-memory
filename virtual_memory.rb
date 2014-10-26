@@ -1,3 +1,8 @@
+require_relative 'bit_map'
+require_relative 'virtual_address'
+require_relative 'page_fault_error'
+require_relative 'page_not_exists_error'
+
 class VirtualMemory
 
   def initialize(init_file)
@@ -18,16 +23,16 @@ class VirtualMemory
 
     # first line is of the format s, f
     (0..(line1.length - 2)).step(2).each do |i|
-      s = line1[i]
-      f = line1[i + 1]
+      s = line1[i].to_i
+      f = line1[i + 1].to_i
       @pm[s] = f
     end
 
     # second line is of the format p, s, f
     (0..(line2.length - 2)).step(3).each do |i|
-      p = line1[i]
-      s = line1[i + 1]
-      f = line1[i + 1]
+      p = line2[i].to_i
+      s = line2[i + 1].to_i
+      f = line2[i + 2].to_i
       @pm[@pm[s] + p] = f
     end
   end
@@ -40,8 +45,8 @@ class VirtualMemory
     end
 
     (0..(line.length - 2)).step(2).each do |i|
-      op_code = line[i]
-      va = VirtualAddress.new(line[i+1])
+      op_code = line[i].to_i
+      va = VirtualAddress.new(line[i + 1].to_i)
       # 0 indicates read
       begin
         if op_code == 0
@@ -56,14 +61,22 @@ class VirtualMemory
       end
     end
 
-    results
+    @results = results
+  end
+
+  def write_to(filename)
+    target = open(filename, 'w')
+    target.truncate(0)
+    target.write(@results.join(' '))
+    target.write("\n")
+    target.close
   end
 
   def read(va)
     if @pm[va.s] == -1
       raise PageFaultError, 'pf'
     elsif @pm[va.s] == 0
-      raise PageNotExistsError, 'error'
+      raise PageNotExistsError, 'err'
     else
       pt_entry = @pm[va.s] + va.p
     end
@@ -71,7 +84,7 @@ class VirtualMemory
     if @pm[pt_entry] == -1
       raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
-      raise PageNotExistsError, 'error'
+      raise PageNotExistsError, 'err'
     else
       entry = @pm[pt_entry] + va.w
     end

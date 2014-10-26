@@ -12,9 +12,9 @@ class VirtualAddress
 
   def initialize(address)
     # bitwise manipulation of each components
-    @s = address & S_MASK
-    @w = address & P_MASK
-    @p = address & W_MASK
+    @s = (address & S_MASK) >> 19
+    @p = (address & P_MASK) >> 9
+    @w = address & W_MASK
   end
 
 end
