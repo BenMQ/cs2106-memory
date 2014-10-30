@@ -21,7 +21,7 @@ class BitMap
     # not implemented
   end
 
-  # Returns the position of the first 0 bit
+  # Return the position of the first 0 bit
   # Starting from the bit position 0
   def search_for_0
     index = 0
@@ -39,6 +39,7 @@ class BitMap
     index * 32 + offset
   end
 
+  # Return the position of two consecutive 0 bits
   def search_for_00
     index = 0
     while index / 32 < @bits.length
@@ -54,8 +55,10 @@ class BitMap
           index += 32
         end
       elsif @bits[index / 32] >> index % 32 & 0b11 == 0
+        # test if bit at position index%32 and the next bit are 0
         return index
       else
+        # Not two consecutive 0 bits, move on
         index += 1
       end
     end

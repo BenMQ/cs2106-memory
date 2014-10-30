@@ -49,6 +49,7 @@ class VirtualMemory
   # Read from a file that includes list of operations
   def operate_on(filename)
     line = []
+    # array of outputs, to be concatinated at the end
     results = []
     File.open(filename, 'r') do |f|
       line = f.readline.chomp.split(' ')
