@@ -49,7 +49,7 @@ class VirtualMemory
       f = line2[i + 2].to_i
       @pm[@pm[s] + p] = f
       # Flag frame as occupied
-      @available_frame.set_1((@pm[s] + p) / 512)
+      @available_frame.set_1(f / 512)
     end
   end
 
