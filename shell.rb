@@ -1,4 +1,20 @@
+#!/usr/bin/env ruby
 require_relative 'virtual_memory'
+require 'optparse'
+
+options = {}
+
+optparse = OptionParser.new do|opts|
+  opts.banner = 'Usage: shell.rb [options] init_file op_file output_file'
+
+  options[:buffer] = false
+  opts.on('-b', '--buffer', 'Enable Translation Lookaside Buffer') do
+    options[:buffer] = true
+  end
+end
+
+# Parse flags
+optparse.parse!
 
 # file to initialise memory
 init_file = ARGV[0]
@@ -6,9 +22,11 @@ init_file = ARGV[0]
 op_file = ARGV[1]
 # output file
 output_file = ARGV[2]
-# use 1 to flag for using TLB
-use_tlb = ARGV[3] == '1' ? true : false
 
-vm = VirtualMemory.new init_file, use_tlb
-vm.operate_on op_file
-vm.write_to output_file
+if ARGV.length < 3
+  puts optparse.help
+else
+  vm = VirtualMemory.new init_file, options[:buffer]
+  vm.operate_on op_file
+  vm.write_to output_file
+end
