@@ -37,6 +37,9 @@ class VirtualMemory
       s = line1[i].to_i
       f = line1[i + 1].to_i
       @pm[s] = f
+      # Flag frame as occupied
+      @available_frame.set_1(f / 512)
+      @available_frame.set_1(f / 512 + 1)
     end
 
     # second line is of the format p, s, f
@@ -45,6 +48,8 @@ class VirtualMemory
       s = line2[i + 1].to_i
       f = line2[i + 2].to_i
       @pm[@pm[s] + p] = f
+      # Flag frame as occupied
+      @available_frame.set_1((@pm[s] + p) / 512)
     end
   end
 
