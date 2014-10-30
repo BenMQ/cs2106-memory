@@ -69,11 +69,14 @@ class VirtualMemory
       result = ''
       begin
         if @use_tlb
-          tlb_result = @tlb.search(va.s << 10 + va.p)
+          tlb_result = @tlb.search((va.s << 10) + va.p)
           if tlb_result > 0
             # print h for cache hit, followed by address
+            debug "cache hit for #{va.s} - #{va.p}: #{tlb_result}"
             results.push('h').push(tlb_result + va.w)
             next
+          else
+            debug "cache miss for #{va.s} - #{va.p}"
           end
         end
 
@@ -138,7 +141,7 @@ class VirtualMemory
 
     if @use_tlb
       # Update the TLB with the result
-      @tlb.update(va.s << 10 + va.p, entry)
+      @tlb.update((va.s << 10) + va.p, @pm[pt_entry])
     end
 
     debug "    final address is #{entry}"
@@ -174,7 +177,7 @@ class VirtualMemory
 
     if @use_tlb
       # Update the TLB with the result
-      @tlb.update(va.s << 10 + va.p, entry)
+      @tlb.update((va.s << 10) + va.p, @pm[pt_entry])
     end
 
     debug "    final address is #{entry}"
