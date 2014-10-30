@@ -8,8 +8,10 @@ class VirtualMemory
 
   # init_file is the file to initialise the memory
   # use_tlb flags whether to use Translation Look-aside Buffer
-  def initialize(init_file, use_tlb)
+  # debug flags whether to print debugging messages to console
+  def initialize(init_file, use_tlb, debug)
     @pm = Array.new(1024 * 512, 0)
+    @debug = debug
     @available_frame = BitMap.new(1024)
     @use_tlb = use_tlb
     if use_tlb
@@ -106,19 +108,26 @@ class VirtualMemory
   # Returns the physical address based on the virtual address,
   # Or throw either page fault or not exist error
   def read(va)
+    debug "reading #{va.s} - #{va.p} - #{va.w}"
     if @pm[va.s] == -1
+      debug "    page fault for segment #{va.s}"
       raise PageFaultError, 'pf'
     elsif @pm[va.s] == 0
+      debug "    non existing PT for segment #{va.s}"
       raise PageNotExistsError, 'err'
     else
+      debug "    found PT for segment #{va.s}, address is #{@pm[va.s]}"
       pt_entry = @pm[va.s] + va.p
     end
 
     if @pm[pt_entry] == -1
+      debug "    page fault for page #{va.w}"
       raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
+      debug "    non existing page for page #{va.w}"
       raise PageNotExistsError, 'err'
     else
+      debug "    found page for #{va.w}, address is #{@pm[pt_entry]}"
       entry = @pm[pt_entry] + va.w
     end
 
@@ -126,6 +135,8 @@ class VirtualMemory
       # Update the TLB with the result
       @tlb.update(va.s << 10 + va.p, entry)
     end
+
+    debug "    final address is #{entry}"
     entry
   end
 
@@ -133,19 +144,26 @@ class VirtualMemory
   # If page does not exist, create one
   # Throws page fault error
   def write(va)
+    debug "writing #{va.s} - #{va.p} - #{va.w}"
     if @pm[va.s] == -1
+      debug "    page fault for segment #{va.s}"
       raise PageFaultError, 'pf'
     elsif @pm[va.s] == 0
-      pt_entry = allocate_pt_for(va.s)
+      debug "    non existing PT for segment #{va.s}"
+      pt_entry = allocate_pt_for(va.s) + va.p
     else
+      debug "    found PT for segment #{va.s}, address is #{@pm[va.s]}"
       pt_entry = @pm[va.s] + va.p
     end
 
     if @pm[pt_entry] == -1
+      debug "    page fault for page #{va.w}"
       raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
-      entry = allocate_page(pt_entry)
+      debug "    non existing page for page #{va.w}"
+      entry = allocate_page(pt_entry) + va.w
     else
+      debug "    found page for #{va.w}, address is #{@pm[pt_entry]}"
       entry = @pm[pt_entry] + va.w
     end
 
@@ -153,6 +171,8 @@ class VirtualMemory
       # Update the TLB with the result
       @tlb.update(va.s << 10 + va.p, entry)
     end
+
+    debug "    final address is #{entry}"
     entry
   end
 
@@ -162,6 +182,7 @@ class VirtualMemory
   def allocate_pt_for(entry_address)
     # find and occupy two consecutive free frames
     free_frame = @available_frame.search_for_00
+    debug "    found 2 consecutive free frames starting at frame #{free_frame}"
     @available_frame.set_1(free_frame)
     @available_frame.set_1(free_frame + 1)
     index = free_frame * 512
@@ -178,6 +199,7 @@ class VirtualMemory
   # returns the address for the allocated new page
   def allocate_page(entry_address)
     free_frame = @available_frame.search_for_0
+    debug "    found free frame starting at frame #{free_frame}"
     @available_frame.set_1(free_frame)
     index = free_frame * 512
     # update PT
@@ -185,6 +207,14 @@ class VirtualMemory
     # set the frame contents to be 0
     @pm.fill(0, index, 512)
     index
+  end
+
+  private
+  # Print debug message if in debug mode
+  def debug(message)
+    if @debug
+      puts message
+    end
   end
 
 

@@ -11,6 +11,11 @@ optparse = OptionParser.new do|opts|
   opts.on('-b', '--buffer', 'Enable Translation Lookaside Buffer') do
     options[:buffer] = true
   end
+
+  options[:verbose] = false
+  opts.on('-v', '--verbose', 'Enable verbose debugging output') do
+    options[:verbose] = true
+  end
 end
 
 # Parse flags
@@ -26,7 +31,7 @@ output_file = ARGV[2]
 if ARGV.length < 3
   puts optparse.help
 else
-  vm = VirtualMemory.new init_file, options[:buffer]
+  vm = VirtualMemory.new init_file, options[:buffer], options[:verbose]
   vm.operate_on op_file
   vm.write_to output_file
 end
