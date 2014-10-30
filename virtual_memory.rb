@@ -37,6 +37,7 @@ class VirtualMemory
       s = line1[i].to_i
       f = line1[i + 1].to_i
       @pm[s] = f
+      debug "segment #{s} PT is at #{f / 512} (#{f})"
       # Flag frame as occupied
       @available_frame.set_1(f / 512)
       @available_frame.set_1(f / 512 + 1)
@@ -48,6 +49,7 @@ class VirtualMemory
       s = line2[i + 1].to_i
       f = line2[i + 2].to_i
       @pm[@pm[s] + p] = f
+      debug "#{s} - #{p} starts at #{f / 512} (#{f})"
       # Flag frame as occupied
       @available_frame.set_1(f / 512)
     end
@@ -129,13 +131,13 @@ class VirtualMemory
     end
 
     if @pm[pt_entry] == -1
-      debug "    page fault for page #{va.w}"
+      debug "    page fault for page #{va.p}"
       raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
-      debug "    non existing page for page #{va.w}"
+      debug "    non existing page for page #{va.p}"
       raise PageNotExistsError, 'err'
     else
-      debug "    found page for #{va.w}, address is #{@pm[pt_entry]}"
+      debug "    found page for #{va.p}, address is #{@pm[pt_entry]}"
       entry = @pm[pt_entry] + va.w
     end
 
@@ -165,13 +167,13 @@ class VirtualMemory
     end
 
     if @pm[pt_entry] == -1
-      debug "    page fault for page #{va.w}"
+      debug "    page fault for page #{va.p}"
       raise PageFaultError, 'pf'
     elsif @pm[pt_entry] == 0
-      debug "    non existing page for page #{va.w}"
+      debug "    non existing page for page #{va.p}"
       entry = allocate_page(pt_entry) + va.w
     else
-      debug "    found page for #{va.w}, address is #{@pm[pt_entry]}"
+      debug "    found page for #{va.p}, address is #{@pm[pt_entry]}"
       entry = @pm[pt_entry] + va.w
     end
 
